@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movies Info</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
+    <style>
+      .movie-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+      .movie-card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+      .movie-poster {
+        height: 300px;
+        object-fit: cover;
+        width: 100%;
+      }
+      .featured-movie {
+        max-height: 500px;
+        width: 100%;
+        object-fit: cover;
+      }
+      .dark-mode {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        min-height: 100vh;
+      }
+      .dark-mode .card {
+        background-color: #2d2d2d;
+        color: #ffffff;
+        border: 1px solid #404040;
+      }
+      .movie-hover-info {
+        position: absolute;
+        bottom: -100%;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 15px;
+        transition: bottom 0.3s ease-in-out;
+      }
+      .movie-card:hover .movie-hover-info {
+        bottom: 0;
+      }
+      .error-message {
+        color: #dc3545;
+        padding: 10px;
+        text-align: center;
+      }
+      .featured-container {
+        text-align: center;
+        max-width: 100%;
+      }
+
+      .featured-content {
+        display: grid;
+        grid-template-rows: auto;
+        position: relative;
+        width: 100%;
+      }
+
+      .featured-image {
+        width: 100%;
+        max-height: 500px;
+        object-fit: cover;
+        grid-row: 1;
+        grid-column: 1;
+      }
+
+      .featured-info {
+        grid-row: 1;
+        grid-column: 1;
+        align-self: end;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+        color: white;
+        padding: 2rem;
+      }
+      footer.navbar {
+        margin-top: auto;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+      }
+
+      .dark-mode footer.navbar {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- First Header -->
+      <nav
+        class="navbar navbar-expand-lg"
+        :class="{'navbar-dark bg-dark': isDarkMode, 'navbar-light bg-light': !isDarkMode}"
+      >
+        <div class="container">
+          <h4>22120433</h4>
+          <h2>Movies Info</h2>
+          <div class="d-flex align-items-center">
+            <div class="form-check form-switch me-3">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                v-model="isDarkMode"
+                id="darkModeSwitch"
+              />
+              <label class="form-check-label" for="darkModeSwitch">
+                <i
+                  :class="isDarkMode ? 'fas fa-moon text-white' : 'fas fa-sun'"
+                ></i>
+              </label>
+            </div>
+          </div>
+        </div>
+      </nav>
+      <!-- Second Header -->
+      <nav
+        class="navbar navbar-expand-lg"
+        :class="{'navbar-dark bg-dark': isDarkMode, 'navbar-light bg-light': !isDarkMode}"
+      >
+        <div class="container">
+          <a href="#" class="btn me-3">
+            <i class="fas fa-home"></i>
+          </a>
+          <div class="d-flex flex-grow-1">
+            <input
+              class="form-control me-2"
+              type="search"
+              v-model="searchQuery"
+              @keyup.enter="searchMovies"
+              placeholder="Search movies..."
+              aria-label="Search"
+            />
+            <button class="btn btn-outline-primary" @click="searchMovies">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div class="container mt-4" :class="{ 'dark-mode': isDarkMode }">
+        <!-- Search Results -->
+        <div v-if="searchQuery && searchResults.length > 0" class="mb-5">
+          <h2 class="mb-4">Search Results</h2>
+          <div class="row row-cols-1 row-cols-md-4 g-4">
+            <movie-card
+              v-for="movie in searchResults"
+              :key="movie.id"
+              :movie="movie"
+            >
+            </movie-card>
+          </div>
+        </div>
+
+        <!-- Featured Movie -->
+        <div v-if="!searchQuery" class="featured-container mb-5">
+          <div class="featured-content">
+            <img
+              :src="featuredMovie.posterUrl"
+              :alt="featuredMovie.title"
+              class="featured-image"
+            />
+            <div class="featured-info">
+              <h3>{{ featuredMovie.title }}</h3>
+              <div class="mb-2">
+                <i class="fas fa-star text-warning"></i>
+                <span>{{ featuredMovie.rating }}/5</span>
+              </div>
+              <p>{{ featuredMovie.description }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Popular Movies -->
+        <div v-if="!searchQuery">
+          <h2 class="mb-4">Most Popular</h2>
+          <div class="row row-cols-1 row-cols-md-4 g-4 mb-5">
+            <movie-card
+              v-for="movie in popularMovies"
+              :key="movie.id"
+              :movie="movie"
+            >
+            </movie-card>
+          </div>
+
+          <!-- Top Rated Movies -->
+          <h2 class="mb-4">Top Rating</h2>
+          <div class="row row-cols-1 row-cols-md-4 g-4">
+            <movie-card
+              v-for="movie in topRatedMovies"
+              :key="movie.id"
+              :movie="movie"
+            >
+            </movie-card>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer
+      class="navbar navbar-expand-lg mt-4"
+      :class="{'navbar-dark bg-dark': isDarkMode, 'navbar-light bg-light': !isDarkMode}"
+    >
+      <div class="container">
+        <!-- Empty container to maintain height -->
+        <div style="height: 56px"></div>
+      </div>
+    </footer>
+
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
+    <script>
+      const MovieDBProvider = {
+        movies: [
+          {
+            id: 1,
+            title: "Children of Heaven",
+            year: 1997,
+            rating: 4.5,
+            views: 150000,
+            posterUrl:
+              "https://m.media-amazon.com/images/M/MV5BZTYwZWQ4ZTQtZWU0MS00N2YwLWEzMDItZWFkZWY0MWVjODVhXkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_Ratio0.6762_AL_.jpg",
+            description:
+              "Award Winner! One of The Year's Genuine Crowd Pleasers!",
+          },
+          {
+            id: 2,
+            title: "The Little Mermaid",
+            year: 2023,
+            rating: 4.2,
+            views: 280000,
+            posterUrl:
+              "https://lumiere-a.akamaihd.net/v1/images/p_thelittlemermaid_2023_final_796_94759fcc.jpeg",
+          },
+          {
+            id: 3,
+            title: "The Godfather",
+            year: 1972,
+            rating: 4.8,
+            views: 500000,
+            posterUrl:
+              "https://m.media-amazon.com/images/M/MV5BM2MyNjYxNmUtYTAwNi00MTYxLWJmNWYtYzZlODY3ZTk3OTFlXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_.jpg",
+          },
+        ],
+        getFeaturedMovie() {
+          return this.movies[0];
+        },
+        getPopularMovies() {
+          return this.movies.slice(0, 4);
+        },
+        getTopRatedMovies() {
+          return [...this.movies]
+            .sort((a, b) => b.rating - a.rating)
+            .slice(0, 4);
+        },
+        searchMovies(query) {
+          return this.movies.filter((movie) =>
+            movie.title.toLowerCase().includes(query.toLowerCase())
+          );
+        },
+      };
+
+      const { createApp } = Vue;
+
+      // Movie Card Component
+      const MovieCard = {
+        props: ["movie"],
+        template: `
+                <div class="col">
+                    <div class="card h-100 movie-card">
+                        <img :src="movie.posterUrl" class="card-img-top movie-poster" :alt="movie.title">
+                        <div class="movie-hover-info">
+                            <h5>{{ movie.title }}</h5>
+                            <p>{{ movie.year }}</p>
+                            <div class="d-flex justify-content-between">
+                                <span><i class="fas fa-star text-warning"></i> {{ movie.rating }}</span>
+                                <span><i class="fas fa-eye"></i> {{ movie.views }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+      };
+
+      createApp({
+        components: {
+          "movie-card": MovieCard,
+        },
+        data() {
+          return {
+            isDarkMode: false,
+            searchQuery: "",
+            featuredMovie: {},
+            popularMovies: [],
+            topRatedMovies: [],
+            searchResults: [],
+            error: null,
+          };
+        },
+        methods: {
+          searchMovies() {
+            try {
+              this.searchResults = MovieDBProvider.searchMovies(
+                this.searchQuery
+              );
+            } catch (error) {
+              this.error = "Error searching movies";
+              console.error(error);
+            }
+          },
+        },
+        mounted() {
+          try {
+            this.featuredMovie = MovieDBProvider.getFeaturedMovie();
+            this.popularMovies = MovieDBProvider.getPopularMovies();
+            this.topRatedMovies = MovieDBProvider.getTopRatedMovies();
+          } catch (error) {
+            this.error = "Error loading movies";
+            console.error(error);
+          }
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
