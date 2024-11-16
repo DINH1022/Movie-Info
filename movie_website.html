@@ -13,36 +13,104 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
     />
     <style>
+      /* Base Layout */
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background-color: #ffffff;
+        transition: background-color 0.3s;
+      }
+      .main-wrapper {
+        flex: 1;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        background-color: #ffffff;
+        min-height: 100vh;
+        border-radius: 0; /* Remove border radius */
+        box-shadow: none; /* Remove shadow */
+      }
+      .main-wrapper-light {
+        background-color: #ffffff;
+        min-height: 100vh;
+        transition: background-color 0.3s ease;
+      }
+      .main-wrapper-dark {
+        background-color: #333333;
+        min-height: 100vh;
+        transition: background-color 0.3s ease;
+        color: #ffffff;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background-color: #ffffff;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 0 15px;
+      }
+
+      /* Header Styles */
+      .custom-header1-light,
+      .custom-header1-dark,
+      .custom-header2-light,
+      .custom-header2-dark {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        border-radius: 5px;
+      }
+
+      .custom-header1-light {
+        background-color: #fde3e3;
+        border: 1px solid lightgray;
+      }
+
+      .custom-header1-dark {
+        background-color: #660000;
+        color: #f6e4e4;
+        border: 1px solid rgb(246, 217, 217);
+      }
+
+      .custom-header2-light {
+        background-color: #b2dff7;
+        border: 1px solid lightgray;
+      }
+
+      .custom-header2-dark {
+        background-color: #06227f;
+        color: #f6e4e4;
+        border: 1px solid rgb(246, 217, 217);
+
+      }
+
+      /* Movie Cards */
       .movie-card {
         transition: transform 0.3s, box-shadow 0.3s;
         cursor: pointer;
         position: relative;
         overflow: hidden;
       }
+
       .movie-card:hover {
-        transform: scale(1.03);
+        transform: scale(1.53);
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        z-index: 999;
       }
+
       .movie-poster {
         height: 300px;
         object-fit: cover;
         width: 100%;
       }
-      .featured-movie {
-        max-height: 500px;
-        width: 100%;
-        object-fit: cover;
-      }
-      .dark-mode {
-        background-color: #1a1a1a;
-        color: #ffffff;
-        min-height: 100vh;
-      }
-      .dark-mode .card {
-        background-color: #2d2d2d;
-        color: #ffffff;
-        border: 1px solid #404040;
-      }
+
       .movie-hover-info {
         position: absolute;
         bottom: -100%;
@@ -53,17 +121,15 @@
         padding: 15px;
         transition: bottom 0.3s ease-in-out;
       }
+
       .movie-card:hover .movie-hover-info {
         bottom: 0;
       }
-      .error-message {
-        color: #dc3545;
-        padding: 10px;
-        text-align: center;
-      }
+
+      /* Featured Section */
       .featured-container {
         text-align: center;
-        max-width: 100%;
+        margin: 0 auto;
       }
 
       .featured-content {
@@ -89,136 +155,190 @@
         color: white;
         padding: 2rem;
       }
-      footer.navbar {
-        margin-top: auto;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
+
+      /* Dark Mode */
+      .dark-mode {
+        background-color: #1a1a1a !important;
+        color: #ffffff;
       }
 
-      .dark-mode footer.navbar {
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      .dark-mode .card {
+        background-color: #2d2d2d;
+        color: #ffffff;
+        border: 1px solid #404040;
+      }
+
+      /* Footer */
+      .footer-light,
+      .footer-dark {
+        margin-top: auto;
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 1200px;
+        width: 100%;
+        align-items: center;
+        border-radius: 5px;
+      }
+
+      .footer-light {
+        border: 1px solid rgba(0, 0, 0, 0.1);
+      }
+
+      .footer-dark {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Utilities */
+      .error-message {
+        color: #dc3545;
+        padding: 10px;
+        text-align: center;
       }
     </style>
   </head>
+
   <body>
-    <div id="app">
-      <!-- First Header -->
-      <nav
-        class="navbar navbar-expand-lg"
-        :class="{'navbar-dark bg-dark': isDarkMode, 'navbar-light bg-light': !isDarkMode}"
+    <div id="app" class="app" :class="{ 'dark-mode': isDarkMode }">
+      <div
+        class="main-wrapper"
+        :class="{
+            'main-wrapper-dark': isDarkMode,
+            'main-wrapper-light': !isDarkMode
+        }"
       >
-        <div class="container">
-          <h4>22120433</h4>
-          <h2>Movies Info</h2>
-          <div class="d-flex align-items-center">
-            <div class="form-check form-switch me-3">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                v-model="isDarkMode"
-                id="darkModeSwitch"
-              />
-              <label class="form-check-label" for="darkModeSwitch">
-                <i
-                  :class="isDarkMode ? 'fas fa-moon text-white' : 'fas fa-sun'"
-                ></i>
-              </label>
-            </div>
-          </div>
-        </div>
-      </nav>
-      <!-- Second Header -->
-      <nav
-        class="navbar navbar-expand-lg"
-        :class="{'navbar-dark bg-dark': isDarkMode, 'navbar-light bg-light': !isDarkMode}"
-      >
-        <div class="container">
-          <a href="#" class="btn me-3">
-            <i class="fas fa-home"></i>
-          </a>
-          <div class="d-flex flex-grow-1">
-            <input
-              class="form-control me-2"
-              type="search"
-              v-model="searchQuery"
-              @keyup.enter="searchMovies"
-              placeholder="Search movies..."
-              aria-label="Search"
-            />
-            <button class="btn btn-outline-primary" @click="searchMovies">
-              <i class="fas fa-search"></i>
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <div class="container mt-4" :class="{ 'dark-mode': isDarkMode }">
-        <!-- Search Results -->
-        <div v-if="searchQuery && searchResults.length > 0" class="mb-5">
-          <h2 class="mb-4">Search Results</h2>
-          <div class="row row-cols-1 row-cols-md-4 g-4">
-            <movie-card
-              v-for="movie in searchResults"
-              :key="movie.id"
-              :movie="movie"
+        <!-- First Header -->
+        <nav
+          class="navbar navbar-expand-lg mb-3"
+          :class="{
+            'navbar-dark custom-header1-dark': isDarkMode,
+            'navbar-light custom-header1-light': !isDarkMode
+        }"
+        >
+          <div class="container">
+            <div
+              class="d-flex justify-content-between align-items-center w-100"
             >
-            </movie-card>
-          </div>
-        </div>
-
-        <!-- Featured Movie -->
-        <div v-if="!searchQuery" class="featured-container mb-5">
-          <div class="featured-content">
-            <img
-              :src="featuredMovie.posterUrl"
-              :alt="featuredMovie.title"
-              class="featured-image"
-            />
-            <div class="featured-info">
-              <h3>{{ featuredMovie.title }}</h3>
-              <div class="mb-2">
-                <i class="fas fa-star text-warning"></i>
-                <span>{{ featuredMovie.rating }}/5</span>
+              <p class="mb-0">22120433</p>
+              <h2 class="mb-0">Movies Info</h2>
+              <div class="d-flex align-items-center">
+                <div class="form-check form-switch me-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    v-model="isDarkMode"
+                    id="darkModeSwitch"
+                  />
+                  <label class="form-check-label" for="darkModeSwitch">
+                    <i
+                      :class="isDarkMode ? 'fas fa-moon text-white' : 'fas fa-sun'"
+                    ></i>
+                  </label>
+                </div>
               </div>
-              <p>{{ featuredMovie.description }}</p>
             </div>
           </div>
-        </div>
+        </nav>
 
-        <!-- Popular Movies -->
-        <div v-if="!searchQuery">
-          <h2 class="mb-4">Most Popular</h2>
-          <div class="row row-cols-1 row-cols-md-4 g-4 mb-5">
-            <movie-card
-              v-for="movie in popularMovies"
-              :key="movie.id"
-              :movie="movie"
-            >
-            </movie-card>
+        <!-- Second Header -->
+        <nav
+          class="navbar navbar-expand-lg"
+          :class="{
+            'navbar-dark custom-header2-dark': isDarkMode,
+            'navbar-light custom-header2-light': !isDarkMode
+        }"
+        >
+          <div class="container">
+            <a href="#" class="btn me-3">
+              <i class="fas fa-home"></i>
+            </a>
+            <div class="d-flex flex-grow-1">
+              <input
+                class="form-control me-2"
+                type="search"
+                v-model="searchQuery"
+                @keyup.enter="searchMovies"
+                placeholder="Search movies..."
+              />
+              <button class="btn btn-outline-primary" @click="searchMovies">
+                Search
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="container mt-4">
+          <!-- Search Results -->
+          <div v-if="searchQuery && searchResults.length > 0" class="mb-5">
+            <h2 class="mb-4">Search Results</h2>
+            <div class="row row-cols-1 row-cols-md-4 g-4">
+              <movie-card
+                v-for="movie in searchResults"
+                :key="movie.id"
+                :movie="movie"
+              ></movie-card>
+            </div>
           </div>
 
-          <!-- Top Rated Movies -->
-          <h2 class="mb-4">Top Rating</h2>
-          <div class="row row-cols-1 row-cols-md-4 g-4">
-            <movie-card
-              v-for="movie in topRatedMovies"
-              :key="movie.id"
-              :movie="movie"
-            >
-            </movie-card>
+          <!-- Featured Movie -->
+          <div v-if="!searchQuery" class="featured-container mb-5">
+            <div class="featured-content">
+              <img
+                :src="featuredMovie.posterUrl"
+                :alt="featuredMovie.title"
+                class="featured-image"
+              />
+              <div class="featured-info">
+                <h3>{{ featuredMovie.title }}</h3>
+                <div class="mb-2">
+                  <i class="fas fa-star text-warning"></i>
+                  <span>{{ featuredMovie.rating }}/5</span>
+                </div>
+                <p>{{ featuredMovie.description }}</p>
+              </div>
+            </div>
           </div>
-        </div>
+
+          <!-- Movie Lists -->
+          <div v-if="!searchQuery">
+            <section class="mb-5">
+              <h2 class="mb-4">Most Popular</h2>
+              <div class="row row-cols-1 row-cols-md-4 g-4">
+                <movie-card
+                  v-for="movie in popularMovies"
+                  :key="movie.id"
+                  :movie="movie"
+                ></movie-card>
+              </div>
+            </section>
+
+            <section>
+              <h2 class="mb-4">Top Rating</h2>
+              <div class="row row-cols-1 row-cols-md-4 g-4">
+                <movie-card
+                  v-for="movie in topRatedMovies"
+                  :key="movie.id"
+                  :movie="movie"
+                ></movie-card>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <!-- Footer -->
+        <footer
+          class="navbar navbar-expand-lg mt-4"
+          :class="{
+            'navbar-dark footer-dark bg-dark': isDarkMode,
+            'navbar-light footer-light bg-light': !isDarkMode
+        }"
+        >
+          <div class="container">
+            <div style="height: 28px">&lt;footer&gt;</div>
+          </div>
+        </footer>
       </div>
     </div>
-
-    <footer
-      class="navbar navbar-expand-lg mt-4"
-      :class="{'navbar-dark bg-dark': isDarkMode, 'navbar-light bg-light': !isDarkMode}"
-    >
-      <div class="container">
-        <!-- Empty container to maintain height -->
-        <div style="height: 56px"></div>
-      </div>
-    </footer>
 
     <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
     <script>
@@ -284,10 +404,6 @@
                         <div class="movie-hover-info">
                             <h5>{{ movie.title }}</h5>
                             <p>{{ movie.year }}</p>
-                            <div class="d-flex justify-content-between">
-                                <span><i class="fas fa-star text-warning"></i> {{ movie.rating }}</span>
-                                <span><i class="fas fa-eye"></i> {{ movie.views }}</span>
-                            </div>
                         </div>
                     </div>
                 </div>
