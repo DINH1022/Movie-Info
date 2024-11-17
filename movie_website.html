@@ -97,27 +97,30 @@
             :search-query="searchQuery"
             :movies="searchResults"
             :is-loading="isLoading"
+            :has-searched="hasSearched"
+            @show-details="showDetails"
           ></search-results>
 
           <div v-else>
             <!-- Featured Movie -->
-          <section class="mb-5 position-relative">
-            <div class="movie-slider">
-              <button class="slider-btn prev" @click="prevFeaturedSlide">
-                <i class="fas fa-chevron-left"></i>
-              </button>
-              <div class="row row-cols-3 g-4 justify-content-center">
-                <featured-movie-card
-                  v-if="featuredMovies[featuredSlideIndex]"
-                  :movie="featuredMovies[featuredSlideIndex]"
-                  class="col-md-8"
-                ></featured-movie-card>
+            <section class="mb-5 position-relative">
+              <div class="movie-slider">
+                <button class="slider-btn prev" @click="prevFeaturedSlide">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="row row-cols-3 g-4 justify-content-center">
+                  <featured-movie-card
+                    v-if="featuredMovies[featuredSlideIndex]"
+                    :movie="featuredMovies[featuredSlideIndex]"
+                    class="col-md-8"
+                    @show-details="showDetails"
+                  ></featured-movie-card>
+                </div>
+                <button class="slider-btn next" @click="nextFeaturedSlide">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
               </div>
-              <button class="slider-btn next" @click="nextFeaturedSlide">
-                <i class="fas fa-chevron-right"></i>
-              </button>
-            </div>
-          </section>
+            </section>
 
             <!-- Movie Lists -->
             <!-- Most Popular Section -->
@@ -132,6 +135,7 @@
                     v-for="movie in popularMovieSlides"
                     :key="movie.id"
                     :movie="movie"
+                    @show-details="showDetails"
                   ></movie-card>
                 </div>
                 <button class="slider-btn next" @click="nextSlide('popular')">
@@ -151,6 +155,7 @@
                     v-for="movie in topRatedMovieSlides"
                     :key="movie.id"
                     :movie="movie"
+                    @show-details="showDetails"
                   ></movie-card>
                 </div>
                 <button class="slider-btn next" @click="nextSlide('topRated')">
@@ -159,6 +164,12 @@
               </div>
             </section>
           </div>
+          <movie-details
+            v-if="selectedMovie"
+            :movie="selectedMovie"
+            :show="showMovieDetails"
+            @close="closeDetails"
+          ></movie-details>
         </div>
 
         <!-- Footer -->

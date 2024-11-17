@@ -106,7 +106,7 @@ const MovieDBProvider = {
 
     async searchMovies(query) {
         try {
-            const movieResult = await DBUtility.fetch(`search/movie/${query}?per_page=20&page=1`);
+            const movieResult = await DBUtility.fetch(`search/movie/${query}?per_page=300&page=1`);
             console.log('Search results:', movieResult);
             return movieResult.items;
         } catch (error) {
@@ -132,7 +132,7 @@ const MovieCard = {
     },
     template: `
         <div class="col">
-            <div class="card h-100 movie-card">
+            <div class="card h-100 movie-card" @click="handleClick">
                 <img 
                     :src="imageUrl" 
                     class="card-img-top movie-poster" 
@@ -149,10 +149,13 @@ const MovieCard = {
     methods: {
         handleImageError(e) {
             e.target.src = 'https://via.placeholder.com/300x450?text=No+Image';
-        }
+        },
+        handleClick() {
+            // Emit the showDetails event to the parent
+            this.$emit('show-details', this.movie);
+        },
     }
 };
-
 const FeaturedMovieCard = {
     props: {
         movie: { type: Object, required: true }
@@ -172,7 +175,7 @@ const FeaturedMovieCard = {
     },
     template: `
         <div class="col">
-            <div class="card featured-movie-card">
+            <div class="card featured-movie-card" @click="handleClick">
                 <img 
                     :src="imageUrl" 
                     class="featured-movie-poster"
@@ -193,8 +196,59 @@ const FeaturedMovieCard = {
     methods: {
         handleImageError(e) {
             e.target.src = 'https://via.placeholder.com/300x450?text=No+Image';
-        }
+        },
+        handleClick() {
+            // Emit the showDetails event to the parent
+            this.$emit('show-details', this.movie);
+        },
     }
+};
+const MovieDetails = {
+    props: {
+        movie: { type: Object, required: true },
+        show: { type: Boolean, default: false }
+    },
+    emits: ['close'],
+    computed: {
+        imageUrl() {
+            return this.movie.image || this.movie.posterUrl || 'https://via.placeholder.com/300x450?text=No+Image';
+        }
+    },
+    template: `
+        <div v-if="show" class="movie-details-modal" @click.self="$emit('close')">
+            <div class="movie-details-content">
+                <button class="close-btn" @click="$emit('close')">&times;</button>
+                <div class="movie-details-grid">
+                    <div class="movie-poster-container">
+                        <img :src="imageUrl" :alt="movie.title" class="movie-detail-poster">
+                    </div>
+                    <div class="movie-info-container">
+                        <h2>{{movie.fullTitle || movie.title}}</h2>
+                        <div class="movie-meta">
+                            <p v-if="movie.year"><strong>Year:</strong> {{movie.year}}</p>
+                            <p v-if="movie.imDbRating"><strong>Rating:</strong> {{movie.imDbRating}}/10</p>
+                            <p v-if="movie.runtimeStr || movie.runtime">
+                                <strong>Runtime:</strong> {{movie.runtimeStr || movie.runtime}}
+                            </p>
+                        </div>
+                        <div v-if="movie.plot || movie.description" class="movie-plot">
+                            <h3>Plot</h3>
+                            <p>{{movie.plot || movie.description}}</p>
+                        </div>
+                        <div v-if="movie.directors" class="movie-crew">
+                            <p><strong>Director:</strong> {{movie.directors}}</p>
+                        </div>
+                        <div v-if="movie.stars" class="movie-cast">
+                            <p><strong>Stars:</strong> {{movie.stars}}</p>
+                        </div>
+                        <div v-if="movie.genres" class="movie-genres">
+                            <p><strong>Genres:</strong> {{movie.genres}}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `
 };
 const SearchResults = {
     components: {
@@ -203,8 +257,10 @@ const SearchResults = {
     props: {
         searchQuery: { type: String, required: true },
         movies: { type: Array, required: true },
-        isLoading: { type: Boolean, default: false }
+        isLoading: { type: Boolean, default: false },
+        hasSearched: { type: Boolean, default: false }
     },
+    emits: ['show-details'],
     data() {
         return {
             currentPage: 1,
@@ -226,6 +282,10 @@ const SearchResults = {
             if (page >= 1 && page <= this.totalPages) {
                 this.currentPage = page;
             }
+        },
+        handleShowDetails(movie) {
+            // Forward the show-details event to parent
+            this.$emit('show-details', movie);
         }
     },
     watch: {
@@ -241,7 +301,7 @@ const SearchResults = {
         <div class="search-results-container">
             <div class="search-results-grid">
                 <div class="search-result-item" v-for="movie in paginatedMovies" :key="movie.id">
-                    <featured-movie-card :movie="movie"></featured-movie-card>
+                    <featured-movie-card :movie="movie" @show-details="handleShowDetails"></featured-movie-card>
                 </div>
             </div>
         </div>
@@ -265,7 +325,7 @@ const SearchResults = {
         </nav>
     </div>
     
-    <div v-else-if="searchQuery && !isLoading && movies.length === 0" class="alert alert-info">
+    <div v-else-if="hasSearched && searchQuery && !isLoading && movies.length === 0" class="alert alert-info">
         No results found for "{{searchQuery}}"
     </div>
     <div v-if="isLoading" class="text-center">
@@ -283,7 +343,8 @@ createApp({
     components: {
         "movie-card": MovieCard,
         "featured-movie-card": FeaturedMovieCard,
-        "search-results": SearchResults
+        "search-results": SearchResults,
+        "movie-details": MovieDetails
     },
     data() {
         return {
@@ -300,6 +361,9 @@ createApp({
             isLoading: false,
             movieReviews: {},
             moviesPerSlide: 3,
+            hasSearched: false,
+            selectedMovie: null,
+            showMovieDetails: false,
         };
     },
     computed: {
@@ -315,7 +379,8 @@ createApp({
         async searchMovies() {
             if (!this.searchQuery.trim()) return;
             this.isLoading = true;
-            this.currentPage = 1; // Reset to first page
+            this.hasSearched = true;
+            this.currentPage = 1; 
             try {
                 this.searchResults = await MovieDBProvider.searchMovies(this.searchQuery);
             } catch (error) {
@@ -327,6 +392,17 @@ createApp({
         },
         changePage(page) {
             this.currentPage = page;
+        },
+        handleClick() {
+            this.$emit('showDetails', this.movie);
+        },
+        showDetails(movie) {
+            this.selectedMovie = movie;
+            this.showMovieDetails = true;
+        },
+        closeDetails() {
+            this.showMovieDetails = false;
+            this.selectedMovie = null;
         },
         async loadInitialData() {
             this.isLoading = true;
