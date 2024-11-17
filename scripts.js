@@ -28,6 +28,7 @@ const DBUtility = {
                 movie: `/Movies/${request.pattern}`
             },
             get: {
+                all: '/Movies',
                 top50: '/Top50Movies',
                 mostpopular: '/MostPopularMovies',
                 topboxoffice: '/Movies'
@@ -45,8 +46,14 @@ const DBUtility = {
         if (request.type === 'search') {
             const searchTerm = request.pattern.toLowerCase();
             items = request.className === 'movie'
-                ? data.filter(movie => movie.title.toLowerCase().includes(searchTerm))
-                : data.filter(name => name.toLowerCase().includes(searchTerm));
+                ? data.filter(movie => movie.title?.toLowerCase().includes(searchTerm))
+                : data.filter(name => {
+                    if (typeof name === 'string') {
+                        return name.toLowerCase().includes(searchTerm);
+                    }
+                    return name.name?.toLowerCase().includes(searchTerm);
+                    return false;
+                });
         } else {
             items = Array.isArray(data) ? data : [data];
         }
@@ -88,6 +95,7 @@ const MovieDBProvider = {
 
     async getPopularMovies() {
         const result = await DBUtility.fetch('get/mostpopular/?per_page=12&page=1');
+        console.log('Popular movies:', result);
         return result.items;
     },
 
@@ -97,22 +105,14 @@ const MovieDBProvider = {
     },
 
     async searchMovies(query) {
-        const [movieResult, nameResult] = await Promise.all([
-            DBUtility.fetch(`search/movie/${query}?per_page=20&page=1`),
-            DBUtility.fetch(`search/name/${query}?per_page=20&page=1`)
-        ]);
-
-        const movieMatches = movieResult.items;
-        const nameMatches = nameResult.items;
-
-        const nameRelatedMovies = nameMatches.length > 0
-            ? (await DBUtility.fetch('get/mostpopular/?per_page=50&page=1')).items
-                .filter(movie => nameMatches.some(name =>
-                    movie.actors?.includes(name) || movie.director?.includes(name)
-                ))
-            : [];
-
-        return [...new Set([...movieMatches, ...nameRelatedMovies])];
+        try {
+            const movieResult = await DBUtility.fetch(`search/movie/${query}?per_page=20&page=1`);
+            console.log('Search results:', movieResult);
+            return movieResult.items;
+        } catch (error) {
+            console.error('Search error:', error);
+            return [];
+        }
     },
 
     async getMovieReviews(movieId) {
@@ -141,12 +141,7 @@ const MovieCard = {
                     loading="lazy"
                 >
                 <div class="movie-hover-info">
-                    <h5>{{ movie.title }}</h5>
-                    <p>{{ movie.year || 'Year N/A' }}</p>
-                    <div class="rating" v-if="movie.rating">
-                        <i class="fas fa-star text-warning"></i>
-                        <span>{{ movie.rating }}/5</span>
-                    </div>
+                    <h5>{{ movie.fullTitle }}</h5>
                 </div>
             </div>
         </div>
@@ -168,10 +163,10 @@ const FeaturedMovieCard = {
         },
         genres() {
             if (!this.movie.genreList) return 'N/A';
-            
+
             return this.movie.genreList
-                .map(genre => genre.value || genre)  
-                .filter(genre => genre)  
+                .map(genre => genre.value || genre)
+                .filter(genre => genre)
                 .join(', ');
         }
     },
@@ -186,10 +181,7 @@ const FeaturedMovieCard = {
                 >
                 <div class="featured-movie-content">
                     <h3 class="movie-title">
-                        {{ movie.title }}
-                        (
-                        <span class="year">{{ movie.year || 'N/A' }}</span>
-                        )
+                        {{ movie.fullTitle }}
                     </h3>
                     <div class="movie-details">
                         <p class="genre">{{ genres }}</p>
@@ -204,12 +196,95 @@ const FeaturedMovieCard = {
         }
     }
 };
+const SearchResults = {
+    components: {
+        'featured-movie-card': FeaturedMovieCard,  
+    },
+    props: {
+        searchQuery: { type: String, required: true },
+        movies: { type: Array, required: true },
+        isLoading: { type: Boolean, default: false }
+    },
+    data() {
+        return {
+            currentPage: 1,
+            itemsPerPage: 9 // Changed from 3 to 9
+        }
+    },
+    computed: {
+        paginatedMovies() {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            const end = start + this.itemsPerPage;
+            return this.movies.slice(start, end);
+        },
+        totalPages() {
+            return Math.ceil(this.movies.length / this.itemsPerPage);
+        }
+    },
+    methods: {
+        changePage(page) {
+            if (page >= 1 && page <= this.totalPages) {
+                this.currentPage = page;
+            }
+        }
+    },
+    watch: {
+        searchQuery() {
+            this.currentPage = 1;
+        },
+    },
+    template: `
+    <div v-if="searchQuery && movies.length > 0" class="mb-5">
+        <h2 class="mb-4">Search Results for "{{searchQuery}}"</h2>
+        
+        <!-- Results Grid -->
+        <div class="search-results-container">
+            <div class="search-results-grid">
+                <div class="search-result-item" v-for="movie in paginatedMovies" :key="movie.id">
+                    <featured-movie-card :movie="movie"></featured-movie-card>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <nav v-if="totalPages > 1" class="mt-4" aria-label="Search results pages">
+            <ul class="pagination justify-content-center">
+                <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                    <button class="page-link" @click="changePage(currentPage - 1)">Previous</button>
+                </li>
+                <li v-for="page in totalPages" 
+                    :key="page" 
+                    class="page-item" 
+                    :class="{ active: page === currentPage }">
+                    <button class="page-link" @click="changePage(page)">{{page}}</button>
+                </li>
+                <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                    <button class="page-link" @click="changePage(currentPage + 1)">Next</button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    
+    <div v-else-if="searchQuery && !isLoading && movies.length === 0" class="alert alert-info">
+        No results found for "{{searchQuery}}"
+    </div>
+    <div v-if="isLoading" class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+`
+};
 
 const { createApp } = Vue;
 
 
 createApp({
-    components: { "movie-card": MovieCard, "featured-movie-card": FeaturedMovieCard },
+    components: {
+        "movie-card": MovieCard,
+        "featured-movie-card": FeaturedMovieCard,
+        "search-results": SearchResults
+    },
     data() {
         return {
             isDarkMode: false,
@@ -224,7 +299,7 @@ createApp({
             error: null,
             isLoading: false,
             movieReviews: {},
-            moviesPerSlide: 3
+            moviesPerSlide: 3,
         };
     },
     computed: {
@@ -233,12 +308,14 @@ createApp({
         },
         topRatedMovieSlides() {
             return this.getVisibleMovies(this.topRatedMovies, 'topRated');
-        }
+        },
+
     },
     methods: {
         async searchMovies() {
             if (!this.searchQuery.trim()) return;
             this.isLoading = true;
+            this.currentPage = 1; // Reset to first page
             try {
                 this.searchResults = await MovieDBProvider.searchMovies(this.searchQuery);
             } catch (error) {
@@ -247,6 +324,9 @@ createApp({
             } finally {
                 this.isLoading = false;
             }
+        },
+        changePage(page) {
+            this.currentPage = page;
         },
         async loadInitialData() {
             this.isLoading = true;
