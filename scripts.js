@@ -5,7 +5,7 @@ const DBUtility = {
     parseRequestString(input) {
         const [type, className, ...rest] = input.split('/');
         const [pattern, queryString] = (rest.join('/') || '').split('?');
-        
+
         const params = new URLSearchParams(queryString);
         const queryParams = {};
         for (const [key, value] of params) {
@@ -30,7 +30,7 @@ const DBUtility = {
             get: {
                 top50: '/Top50Movies',
                 mostpopular: '/MostPopularMovies',
-                topboxoffice: '/TopBoxOffice'
+                topboxoffice: '/Movies'
             }
         };
 
@@ -41,10 +41,10 @@ const DBUtility = {
 
     processResults(data, request) {
         let items = [];
-        
+
         if (request.type === 'search') {
             const searchTerm = request.pattern.toLowerCase();
-            items = request.className === 'movie' 
+            items = request.className === 'movie'
                 ? data.filter(movie => movie.title.toLowerCase().includes(searchTerm))
                 : data.filter(name => name.toLowerCase().includes(searchTerm));
         } else {
@@ -81,18 +81,18 @@ const DBUtility = {
 };
 
 const MovieDBProvider = {
-    async getFeaturedMovie() {
-        const result = await DBUtility.fetch('get/mostpopular/?per_page=1&page=1');
-        return result.items[0];
+    async getFeaturedMovies() {
+        const result = await DBUtility.fetch('get/topboxoffice/?per_page=5&page=1');
+        return result.items;
     },
 
     async getPopularMovies() {
-        const result = await DBUtility.fetch('get/mostpopular/?per_page=4&page=1');
+        const result = await DBUtility.fetch('get/mostpopular/?per_page=12&page=1');
         return result.items;
     },
 
     async getTopRatedMovies() {
-        const result = await DBUtility.fetch('get/top50/?per_page=4&page=1');
+        const result = await DBUtility.fetch('get/top50/?per_page=12&page=1');
         return result.items;
     },
 
@@ -107,7 +107,7 @@ const MovieDBProvider = {
 
         const nameRelatedMovies = nameMatches.length > 0
             ? (await DBUtility.fetch('get/mostpopular/?per_page=50&page=1')).items
-                .filter(movie => nameMatches.some(name => 
+                .filter(movie => nameMatches.some(name =>
                     movie.actors?.includes(name) || movie.director?.includes(name)
                 ))
             : [];
@@ -157,23 +157,83 @@ const MovieCard = {
         }
     }
 };
+
+const FeaturedMovieCard = {
+    props: {
+        movie: { type: Object, required: true }
+    },
+    computed: {
+        imageUrl() {
+            return this.movie.image || 'https://via.placeholder.com/300x450?text=No+Image';
+        },
+        genres() {
+            if (!this.movie.genreList) return 'N/A';
+            
+            return this.movie.genreList
+                .map(genre => genre.value || genre)  
+                .filter(genre => genre)  
+                .join(', ');
+        }
+    },
+    template: `
+        <div class="col">
+            <div class="card featured-movie-card">
+                <img 
+                    :src="imageUrl" 
+                    class="featured-movie-poster"
+                    :alt="movie.title"
+                    @error="handleImageError"
+                >
+                <div class="featured-movie-content">
+                    <h3 class="movie-title">
+                        {{ movie.title }}
+                        (
+                        <span class="year">{{ movie.year || 'N/A' }}</span>
+                        )
+                    </h3>
+                    <div class="movie-details">
+                        <p class="genre">{{ genres }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `,
+    methods: {
+        handleImageError(e) {
+            e.target.src = 'https://via.placeholder.com/300x450?text=No+Image';
+        }
+    }
+};
+
 const { createApp } = Vue;
 
 
 createApp({
-    components: { "movie-card": MovieCard },
+    components: { "movie-card": MovieCard, "featured-movie-card": FeaturedMovieCard },
     data() {
         return {
             isDarkMode: false,
             searchQuery: "",
-            featuredMovie: {},
+            featuredMovies: [],
+            featuredSlideIndex: 0,
             popularMovies: [],
+            popularSlideIndex: 0,
             topRatedMovies: [],
+            topRatedSlideIndex: 0,
             searchResults: [],
             error: null,
             isLoading: false,
-            movieReviews: {}
+            movieReviews: {},
+            moviesPerSlide: 3
         };
+    },
+    computed: {
+        popularMovieSlides() {
+            return this.getVisibleMovies(this.popularMovies, 'popular');
+        },
+        topRatedMovieSlides() {
+            return this.getVisibleMovies(this.topRatedMovies, 'topRated');
+        }
     },
     methods: {
         async searchMovies() {
@@ -191,9 +251,9 @@ createApp({
         async loadInitialData() {
             this.isLoading = true;
             try {
-                [this.featuredMovie, this.popularMovies, this.topRatedMovies] = 
+                [this.featuredMovies, this.popularMovies, this.topRatedMovies] =
                     await Promise.all([
-                        MovieDBProvider.getFeaturedMovie(),
+                        MovieDBProvider.getFeaturedMovies(),
                         MovieDBProvider.getPopularMovies(),
                         MovieDBProvider.getTopRatedMovies()
                     ]);
@@ -212,6 +272,42 @@ createApp({
                 console.error('Error loading reviews:', error);
                 this.error = "Error loading reviews";
             }
+        },
+        getVisibleMovies(movies, section) {
+            const index = section === 'popular' ? this.popularSlideIndex : this.topRatedSlideIndex;
+            const start = this.moviesPerSlide * index;
+            return movies.slice(start, start + this.moviesPerSlide);
+        },
+        nextSlide(section) {
+            const maxIndex = Math.ceil(
+                (section === 'popular' ? this.popularMovies : this.topRatedMovies).length /
+                this.moviesPerSlide
+            ) - 1;
+
+            if (section === 'popular') {
+                this.popularSlideIndex = this.popularSlideIndex >= maxIndex ? 0 : this.popularSlideIndex + 1;
+            } else {
+                this.topRatedSlideIndex = this.topRatedSlideIndex >= maxIndex ? 0 : this.topRatedSlideIndex + 1;
+            }
+        },
+        prevSlide(section) {
+            const maxIndex = Math.ceil(
+                (section === 'popular' ? this.popularMovies : this.topRatedMovies).length /
+                this.moviesPerSlide
+            ) - 1;
+
+            if (section === 'popular') {
+                this.popularSlideIndex = this.popularSlideIndex <= 0 ? maxIndex : this.popularSlideIndex - 1;
+            } else {
+                this.topRatedSlideIndex = this.topRatedSlideIndex <= 0 ? maxIndex : this.topRatedSlideIndex - 1;
+            }
+        },
+        nextFeaturedSlide() {
+            this.featuredSlideIndex = (this.featuredSlideIndex + 1) % this.featuredMovies.length;
+        },
+        prevFeaturedSlide() {
+            this.featuredSlideIndex = this.featuredSlideIndex <= 0 ?
+                this.featuredMovies.length - 1 : this.featuredSlideIndex - 1;
         }
     },
     async mounted() {

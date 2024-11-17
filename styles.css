@@ -181,3 +181,87 @@
         padding: 10px;
         text-align: center;
     }
+
+    .movie-slider {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 0 10px;
+        width: 100%;
+    }
+
+    .slider-btn {
+        border: none;
+        color: black;
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        font-size: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s;
+        background: transparent;
+    }
+
+    .slider-btn:hover {
+        color: lightgray;
+    }
+
+    .slider-btn.prev {
+        left: -20px;
+    }
+
+    .slider-btn.next {
+        right: -20px;
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 15px;
+        flex: 1;
+        transition: transform 0.5s ease-in-out;
+    }
+
+    .col {
+        flex: 0 0 calc(33.333% - 10px);
+    }
+
+    .featured-movie-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+        position: relative;
+    }
+
+
+    .featured-movie-poster {
+        width: 100%;
+        aspect-ratio: 2/3;
+        object-fit: cover;
+    }
+
+    .featured-movie-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 20px;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+        color: rgb(247, 226, 69);
+        z-index: 2;
+        
+    }
+
+    .movie-title {
+        font-size: 20px;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+
+    .movie-details {
+        font-size: 0.9rem;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }

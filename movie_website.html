@@ -12,8 +12,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
     />
-    <link rel="stylesheet" href="styles.css">
-    
+    <link rel="stylesheet" href="styles.css" />
   </head>
 
   <body>
@@ -100,45 +99,62 @@
           </div>
 
           <!-- Featured Movie -->
-          <div v-if="!searchQuery" class="featured-container mb-5">
-            <div class="featured-content">
-              <img
-                :src="featuredMovie.posterUrl"
-                :alt="featuredMovie.title"
-                class="featured-image"
-              />
-              <div class="featured-info">
-                <h3>{{ featuredMovie.title }}</h3>
-                <div class="mb-2">
-                  <i class="fas fa-star text-warning"></i>
-                  <span>{{ featuredMovie.rating }}/5</span>
-                </div>
-                <p>{{ featuredMovie.description }}</p>
+          <section class="mb-5 position-relative">
+            <div class="movie-slider">
+              <button class="slider-btn prev" @click="prevFeaturedSlide">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <div class="row row-cols-3 g-4 justify-content-center">
+                <featured-movie-card
+                  v-if="featuredMovies[featuredSlideIndex]"
+                  :movie="featuredMovies[featuredSlideIndex]"
+                  class="col-md-8"
+                ></featured-movie-card>
               </div>
+              <button class="slider-btn next" @click="nextFeaturedSlide">
+                <i class="fas fa-chevron-right"></i>
+              </button>
             </div>
-          </div>
+          </section>
 
           <!-- Movie Lists -->
           <div v-if="!searchQuery">
-            <section class="mb-5">
+            <!-- Most Popular Section -->
+            <section class="mb-5 position-relative">
               <h2 class="mb-4">Most Popular</h2>
-              <div class="row row-cols-1 row-cols-md-4 g-4">
-                <movie-card
-                  v-for="movie in popularMovies"
-                  :key="movie.id"
-                  :movie="movie"
-                ></movie-card>
+              <div class="movie-slider">
+                <button class="slider-btn prev" @click="prevSlide('popular')">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="row row-cols-3 g-4">
+                  <movie-card
+                    v-for="movie in popularMovieSlides"
+                    :key="movie.id"
+                    :movie="movie"
+                  ></movie-card>
+                </div>
+                <button class="slider-btn next" @click="nextSlide('popular')">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
               </div>
             </section>
 
-            <section>
+            <section class="position-relative">
               <h2 class="mb-4">Top Rating</h2>
-              <div class="row row-cols-1 row-cols-md-4 g-4">
-                <movie-card
-                  v-for="movie in topRatedMovies"
-                  :key="movie.id"
-                  :movie="movie"
-                ></movie-card>
+              <div class="movie-slider">
+                <button class="slider-btn prev" @click="prevSlide('topRated')">
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="row row-cols-3 g-4">
+                  <movie-card
+                    v-for="movie in topRatedMovieSlides"
+                    :key="movie.id"
+                    :movie="movie"
+                  ></movie-card>
+                </div>
+                <button class="slider-btn next" @click="nextSlide('topRated')">
+                  <i class="fas fa-chevron-right"></i>
+                </button>
               </div>
             </section>
           </div>
@@ -161,6 +177,5 @@
 
     <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
     <script src="scripts.js"></script>
-    
   </body>
 </html>
