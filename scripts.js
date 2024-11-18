@@ -31,7 +31,6 @@ const DBUtility = {
                 all: '/Movies',
                 top50: '/Top50Movies',
                 mostpopular: '/MostPopularMovies',
-                topboxoffice: '/Movies'
             }
         };
 
@@ -108,18 +107,32 @@ const DBUtility = {
 
 const MovieDBProvider = {
     async getFeaturedMovies() {
-        const result = await DBUtility.fetch('get/topboxoffice/?per_page=5&page=1');
-        return result.items;
+        try {
+            const result = await DBUtility.fetch('get/all/?per_page=300&page=1');
+            
+            const sortedMovies = result.items
+                .filter(movie => movie.boxOffice?.cumulativeWorldwideGross)
+                .map(movie => ({
+                    ...movie,
+                    grossNumber: Number(movie.boxOffice.cumulativeWorldwideGross.replace(/[$,]/g, ''))
+                }))
+                .sort((a, b) => b.grossNumber - a.grossNumber)
+                .slice(0, 5);
+    
+            return sortedMovies;
+        } catch (error) {
+            console.error('Error getting featured movies:', error);
+            return [];
+        }
     },
 
     async getPopularMovies() {
-        const result = await DBUtility.fetch('get/mostpopular/?per_page=12&page=1');
-        console.log('Popular movies:', result);
+        const result = await DBUtility.fetch('get/mostpopular/?per_page=30&page=1');
         return result.items;
     },
 
     async getTopRatedMovies() {
-        const result = await DBUtility.fetch('get/top50/?per_page=12&page=1');
+        const result = await DBUtility.fetch('get/top50/?per_page=30&page=1');
         return result.items;
     },
 

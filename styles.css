@@ -232,6 +232,11 @@ body {
     cursor: pointer;
     position: relative;
 }
+.featured-movie-card:hover {
+    transform: scale(1.33);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+}
 
 
 .featured-movie-poster {
