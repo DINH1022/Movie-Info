@@ -31,6 +31,7 @@ const DBUtility = {
                 all: '/Movies',
                 top50: '/Top50Movies',
                 mostpopular: '/MostPopularMovies',
+                reviews : '/Reviews'
             }
         };
 
@@ -176,6 +177,16 @@ const MovieDBProvider = {
             console.error('Movie details error:', error);
             throw error;
         }
+    },
+    async getMovieReviews(movieId) {
+        try {
+            const result = await DBUtility.fetch('get/reviews');
+            const movieReviews = result.items.find(review => review.movieId === movieId);
+            return movieReviews?.items || [];
+        } catch (error) {
+            console.error('Reviews error:', error);
+            return [];
+        }
     }
 };
 
@@ -196,7 +207,7 @@ const MovieCard = {
                     class="card-img-top movie-poster" 
                     :alt="movie.title"
                     @error="handleImageError"
-                    loading="lazy"
+                    
                 >
                 <div class="movie-hover-info">
                     <h5>{{ movie.fullTitle }}</h5>
@@ -245,6 +256,7 @@ const FeaturedMovieCard = {
                     </h3>
                     <div class="movie-details">
                         <p class="genre">{{ genres }}</p>
+                        <p class="length">{{ movie.runtimeStr }}</p>
                     </div>
                 </div>
             </div>
@@ -266,6 +278,16 @@ const MovieDetails = {
         show: { type: Boolean, default: false }
     },
     emits: ['close'],
+    data() {
+        return {
+            reviews: []
+        };
+    },
+    async created() {
+        if (this.movie.id) {
+            this.reviews = await MovieDBProvider.getMovieReviews(this.movie.id);
+        }
+    },
     computed: {
         imageUrl() {
             return this.movie.image || this.movie.posterUrl || 'https://via.placeholder.com/300x450?text=No+Image';
@@ -298,7 +320,7 @@ const MovieDetails = {
     template: `
         <div v-if="show" class="movie-details-container">
         <div class="movie-details-grid">
-            <div class="movie-poster-container">
+            <div class="movie-poster-container d-flex align-items-center justify-content-center  py-3">
                 <img :src="imageUrl" :alt="movie.title" class="movie-detail-poster">
             </div>
             <div class="movie-info-container">
@@ -312,19 +334,30 @@ const MovieDetails = {
                     <p v-if="movie.awards"><strong>Award:</strong> {{movie.awards}}</p>
                     <p v-if="movie.countries"><strong>Country:</strong> {{movie.countries}}</p>
                     <p v-if="movie.languages"><strong>Language:</strong> {{movie.languages}}</p>
-                    <p v-if="movie.rank"><strong>Rank:</strong> {{movie.rank}}</p>
-                    <p v-if="movie.imDbRating"><strong>IMDB:</strong> {{movie.imDbRating}}</p>
                     <p v-if="movie.directorList"><strong>Director:</strong> {{directors}}</p>
-                    <p v-if="movie.crew"><strong>Director:</strong> {{movie.crew}}</p>
                     <p v-if="movie.actorList"><strong>Actors:</strong> {{actors}}</p>
                     <p v-if="movie.genreList"><strong>Genres:</strong> {{genres}}</p>
-                    <p v-if="movie.runtimeStr"><strong>Runtime:</strong> {{movie.runtimeStr || movie.runtime}}</p>
+                    <p v-if="movie.runtimeStr"><strong>Time:</strong> {{movie.runtimeStr }}</p>
                 </div>
-                <div v-if="movie.plot || movie.description" class="movie-plot">
+                <div v-if="movie.plot " class="movie-plot">
                     <h3>Plot</h3>
-                    <p>{{movie.plot || movie.description}}</p>
+                    <p>{{movie.plot }}</p>
                 </div>
             </div>
+            
+        </div>
+        <div class="movie-reviews mt-4">
+            <h3 class="mb-3 text-muted">Reviews ({{reviews.length}})</h3>
+            <div v-if="reviews.length" class="reviews-container" style="max-height: 400px; overflow-y: auto;">
+                <div v-for="review in reviews" :key="review.username" class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{review.title}}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">By {{review.username}}</h6>
+                        <p class="card-text">{{review.content}}</p>
+                    </div>
+                </div>
+            </div>
+            <p v-else class="text-muted">No reviews yet</p>
         </div>
     </div>
 `
@@ -375,7 +408,6 @@ const SearchResults = {
     <div v-if="searchQuery && movies.length > 0" class="mb-5">
         <h2 class="mb-4">Search Results for "{{searchQuery}}"</h2>
         
-        <!-- Results Grid -->
         <div class="search-results-container">
             <div class="search-results-grid">
                 <div class="search-result-item" v-for="movie in paginatedMovies" :key="movie.id">
@@ -384,7 +416,6 @@ const SearchResults = {
             </div>
         </div>
 
-        <!-- Pagination -->
         <nav v-if="totalPages > 1" class="mt-4" aria-label="Search results pages">
             <ul class="pagination justify-content-center">
                 <li class="page-item" :class="{ disabled: currentPage === 1 }">
@@ -459,6 +490,22 @@ createApp({
     },
     
     methods: {
+        async loadInitialData() {
+            this.isLoading = true;
+            try {
+                [this.featuredMovies, this.popularMovies, this.topRatedMovies] =
+                    await Promise.all([
+                        MovieDBProvider.getFeaturedMovies(),
+                        MovieDBProvider.getPopularMovies(),
+                        MovieDBProvider.getTopRatedMovies()
+                    ]);
+            } catch (error) {
+                this.error = "Error loading movies";
+                console.error(error);
+            } finally {
+                this.isLoading = false;
+            }
+        },
         goHome() {
             this.isLoading = true;
             setTimeout(async () => {
@@ -518,22 +565,7 @@ createApp({
             this.selectedMovie = null;
             this.showSearchResults = true;
         },
-        async loadInitialData() {
-            this.isLoading = true;
-            try {
-                [this.featuredMovies, this.popularMovies, this.topRatedMovies] =
-                    await Promise.all([
-                        MovieDBProvider.getFeaturedMovies(),
-                        MovieDBProvider.getPopularMovies(),
-                        MovieDBProvider.getTopRatedMovies()
-                    ]);
-            } catch (error) {
-                this.error = "Error loading movies";
-                console.error(error);
-            } finally {
-                this.isLoading = false;
-            }
-        },
+        
         
         getVisibleMovies(movies, section) {
             const index = section === 'popular' ? this.popularSlideIndex : this.topRatedSlideIndex;
