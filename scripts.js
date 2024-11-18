@@ -446,6 +446,19 @@ createApp({
     },
     
     methods: {
+        goHome() {
+            this.isLoading = true;
+            setTimeout(async () => {
+                this.searchQuery = "";
+                this.showMovieDetails = false;
+                this.showSearchResults = false;
+                this.selectedMovie = null;
+                
+                await this.loadInitialData();
+                
+                this.isLoading = false;
+            }, 500); 
+        },
         async searchMovies() {
             if (!this.searchQuery.trim()) return;
             this.isLoading = true;
