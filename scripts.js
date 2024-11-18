@@ -283,39 +283,38 @@ const MovieDetails = {
         }
     },
     template: `
-        <div v-if="show" class="movie-details-modal" @click.self="$emit('close')">
-            <div class="movie-details-content">
-                <button class="close-btn" @click="$emit('close')">&times;</button>
-                <div class="movie-details-grid">
-                    <div class="movie-poster-container d-flex align-items-center justify-content-center py-3">
-                        <img :src="imageUrl" :alt="movie.title" class="movie-detail-poster">
-                    </div>
-                    <div class="movie-info-container">
-
-                        <h2>{{movie.fullTitle || movie.title}}</h2>
-                        <div class="movie-meta">
-                            <p v-if="movie.awards"><strong>Award:</strong> {{movie.awards}}</p>
-                            <p v-if="movie.countries"><strong>Country:</strong> {{movie.countries}}</p>
-                            <p v-if="movie.languages"><strong>Language:</strong> {{movie.languages}}</p>
-                            <p v-if="movie.rank"><strong>Rank:</strong> {{movie.rank}}</p>
-                            <p v-if="movie.imDbRating"><strong>IMDB:</strong> {{movie.imDbRating}}</p>
-
-                            <p v-if="movie.directorList "> <strong>Director:</strong> {{directors }}</p>
-                            <p v-if="movie.crew "> <strong>Director:</strong> {{movie.crew }}</p>
-                            <p v-if="movie.actorList"><strong>Actors:</strong> {{actors}}</p>
-                            <p v-if="movie.genreList"><strong>Genres:</strong> {{genres}}</p>
-                            <p v-if="movie.runtimeStr"><strong>Runtime:</strong> {{movie.runtimeStr || movie.runtime}}</p>
-                        </div>
-                        
-                        <div v-if="movie.plot || movie.description" class="movie-plot">
-                            <h3>Plot</h3>
-                            <p>{{movie.plot || movie.description}}</p>
-                        </div>
-                    </div>
+        <div v-if="show" class="movie-details-container">
+        <div class="movie-details-grid">
+            <div class="movie-poster-container">
+                <img :src="imageUrl" :alt="movie.title" class="movie-detail-poster">
+            </div>
+            <div class="movie-info-container">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2>{{movie.fullTitle || movie.title}}</h2>
+                    <button class="btn btn-outline-secondary" @click="$emit('close')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="movie-meta">
+                    <p v-if="movie.awards"><strong>Award:</strong> {{movie.awards}}</p>
+                    <p v-if="movie.countries"><strong>Country:</strong> {{movie.countries}}</p>
+                    <p v-if="movie.languages"><strong>Language:</strong> {{movie.languages}}</p>
+                    <p v-if="movie.rank"><strong>Rank:</strong> {{movie.rank}}</p>
+                    <p v-if="movie.imDbRating"><strong>IMDB:</strong> {{movie.imDbRating}}</p>
+                    <p v-if="movie.directorList"><strong>Director:</strong> {{directors}}</p>
+                    <p v-if="movie.crew"><strong>Director:</strong> {{movie.crew}}</p>
+                    <p v-if="movie.actorList"><strong>Actors:</strong> {{actors}}</p>
+                    <p v-if="movie.genreList"><strong>Genres:</strong> {{genres}}</p>
+                    <p v-if="movie.runtimeStr"><strong>Runtime:</strong> {{movie.runtimeStr || movie.runtime}}</p>
+                </div>
+                <div v-if="movie.plot || movie.description" class="movie-plot">
+                    <h3>Plot</h3>
+                    <p>{{movie.plot || movie.description}}</p>
                 </div>
             </div>
         </div>
-    `
+    </div>
+`
 };
 const SearchResults = {
     components: {
@@ -430,6 +429,7 @@ createApp({
             hasSearched: false,
             selectedMovie: null,
             showMovieDetails: false,
+            showSearchResults: false,
         };
     },
     computed: {
@@ -439,14 +439,20 @@ createApp({
         topRatedMovieSlides() {
             return this.getVisibleMovies(this.topRatedMovies, 'topRated');
         },
+        isShowingDetails() {
+            return this.showMovieDetails && this.selectedMovie;
+        },
 
     },
+    
     methods: {
         async searchMovies() {
             if (!this.searchQuery.trim()) return;
             this.isLoading = true;
             this.hasSearched = true;
             this.currentPage = 1;
+            this.showSearchResults = true; 
+            this.showMovieDetails = false;
             try {
                 const actorResults = await MovieDBProvider.searchByActor(this.searchQuery);
                 const titleResults = await MovieDBProvider.searchMovies(this.searchQuery);
@@ -474,6 +480,7 @@ createApp({
                 const detailedMovie = await MovieDBProvider.getMovieDetails(movie.id);
                 this.selectedMovie = detailedMovie;
                 this.showMovieDetails = true;
+                this.showSearchResults = false;
             } catch (error) {
                 console.error('Error fetching movie details:', error);
             } finally {
@@ -483,6 +490,7 @@ createApp({
         closeDetails() {
             this.showMovieDetails = false;
             this.selectedMovie = null;
+            this.showSearchResults = true;
         },
         async loadInitialData() {
             this.isLoading = true;

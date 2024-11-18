@@ -92,8 +92,15 @@
         <!-- Main Content -->
         <div class="container mt-4" role="main">
           <!-- Search Results -->
+          <movie-details
+            v-if="isShowingDetails"
+            :movie="selectedMovie"
+            :show="showMovieDetails"
+            @close="closeDetails"
+          ></movie-details>
+
           <search-results
-            v-if="searchQuery"
+            v-if="searchQuery && showSearchResults"
             :search-query="searchQuery"
             :movies="searchResults"
             :is-loading="isLoading"
@@ -101,7 +108,7 @@
             @show-details="showDetails"
           ></search-results>
 
-          <div v-else>
+          <div v-if="!searchQuery && !showMovieDetails">
             <!-- Featured Movie -->
             <section class="mb-5 position-relative">
               <div class="movie-slider">
@@ -164,12 +171,6 @@
               </div>
             </section>
           </div>
-          <movie-details
-            v-if="selectedMovie"
-            :movie="selectedMovie"
-            :show="showMovieDetails"
-            @close="closeDetails"
-          ></movie-details>
         </div>
 
         <!-- Footer -->

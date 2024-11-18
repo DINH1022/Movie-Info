@@ -404,3 +404,38 @@ body {
         margin: 0 auto;
     }
 }
+/* Replace the modal styles with inline styles */
+.movie-details-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.movie-details-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+}
+
+/* Dark mode support */
+.dark-mode .movie-details-container {
+    background: #2d2d2d;
+    color: #fff;
+}
+
+.dark-mode .movie-details-container h2,
+.dark-mode .movie-details-container h3,
+.dark-mode .movie-details-container p,
+.dark-mode .movie-details-container strong {
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .movie-details-grid {
+        grid-template-columns: 1fr;
+    }
+}
