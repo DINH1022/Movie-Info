@@ -239,6 +239,9 @@ const FeaturedMovieCard = {
                 .map(genre => genre.value || genre)
                 .filter(genre => genre)
                 .join(', ');
+        },
+        rating() {
+            return this.movie.ratings?.imDb || 'N/A';
         }
     },
     template: `
@@ -256,6 +259,10 @@ const FeaturedMovieCard = {
                     </h3>
                     <div class="movie-details">
                         <p class="genre">{{ genres }}</p>
+                        <p class="rating">
+                            <i class="fas fa-star" style="color: #ffd700;"></i>
+                            {{ rating }}/10
+                        </p>
                         <p class="length">{{ movie.runtimeStr }}</p>
                     </div>
                 </div>

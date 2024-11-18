@@ -228,7 +228,7 @@ body {
     right: 0;
     padding: 20px;
     background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-    color: rgb(228, 203, 10);
+    color: rgb(231, 208, 36);
     z-index: 2;
     text-align: center;
 }
@@ -244,6 +244,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    line-height: 0.3px;
 }
 .dark-input {
     background-color: #2d2d2d;
