@@ -35,27 +35,44 @@ const DBUtility = {
             }
         };
 
-        const endpoint = endpoints[request.type]?.[request.className];
+        let endpoint = endpoints[request.type]?.[request.className];
         if (!endpoint) throw new Error(`Invalid request: ${request.type}/${request.className}`);
         return endpoint;
     },
 
     processResults(data, request) {
         let items = [];
+        let sum = 0;
 
-        if (request.type === 'search') {
-            const searchTerm = request.pattern.toLowerCase();
-            items = request.className === 'movie'
-                ? data.filter(movie => movie.title?.toLowerCase().includes(searchTerm))
-                : data.filter(name => {
-                    if (typeof name === 'string') {
-                        return name.toLowerCase().includes(searchTerm);
-                    }
-                    return name.name?.toLowerCase().includes(searchTerm);
-                    return false;
-                });
-        } else {
-            items = Array.isArray(data) ? data : [data];
+        switch (request.type) {
+            case 'detail':
+                items = Array.isArray(data) ? [data[0]] : [data];
+                sum = 1;
+                break;
+
+            case 'search':
+                const searchTerm = request.pattern.toLowerCase();
+                if (request.className === 'movie') {
+                    items = data.filter(movie =>
+                        movie.title?.toLowerCase().includes(searchTerm));
+                } else {
+                    items = data.filter(name => {
+                        if (typeof name === 'string') {
+                            return name.toLowerCase().includes(searchTerm);
+                        }
+                        return name.name?.toLowerCase().includes(searchTerm);
+                    });
+                }
+                sum = items.length;
+                break;
+
+            case 'get':
+                items = Array.isArray(data) ? data : [data];
+                sum = items.length;
+                break;
+
+            default:
+                throw new Error(`Invalid request type: ${request.type}`);
         }
 
         const total = items.length;
@@ -84,8 +101,10 @@ const DBUtility = {
             console.error('DBUtility fetch error:', error);
             throw error;
         }
-    }
+    },
+
 };
+
 
 const MovieDBProvider = {
     async getFeaturedMovies() {
@@ -114,10 +133,36 @@ const MovieDBProvider = {
             return [];
         }
     },
+    async searchByActor(query) {
+        try {
+            const nameResult = await DBUtility.fetch(`search/name/${query}?per_page=300&page=1`);
+            const actorNames = nameResult.items;
 
-    async getMovieReviews(movieId) {
-        const result = await DBUtility.fetch(`detail/movie/${movieId}`);
-        return result.items[0]?.reviews || [];
+            const allMovies = await DBUtility.fetch('get/all/?per_page=300&page=1');
+            const moviesWithActors = allMovies.items.filter(movie => {
+                return movie.actorList?.some(actor =>
+                    actorNames.some(name =>
+                        (typeof name === 'string' && actor.name.toLowerCase().includes(name.toLowerCase())) ||
+                        (name.name && actor.name.toLowerCase().includes(name.name.toLowerCase()))
+                    )
+                );
+            });
+
+            return moviesWithActors;
+        } catch (error) {
+            console.error('Actor search error:', error);
+            return [];
+        }
+    },
+
+    async getMovieDetails(movieId) {
+        try {
+            const result = await DBUtility.fetch(`detail/movie/${movieId}`);
+            return result.items[0];
+        } catch (error) {
+            console.error('Movie details error:', error);
+            throw error;
+        }
     }
 };
 
@@ -151,7 +196,6 @@ const MovieCard = {
             e.target.src = 'https://via.placeholder.com/300x450?text=No+Image';
         },
         handleClick() {
-            // Emit the showDetails event to the parent
             this.$emit('show-details', this.movie);
         },
     }
@@ -198,11 +242,11 @@ const FeaturedMovieCard = {
             e.target.src = 'https://via.placeholder.com/300x450?text=No+Image';
         },
         handleClick() {
-            // Emit the showDetails event to the parent
             this.$emit('show-details', this.movie);
         },
     }
 };
+
 const MovieDetails = {
     props: {
         movie: { type: Object, required: true },
@@ -212,6 +256,30 @@ const MovieDetails = {
     computed: {
         imageUrl() {
             return this.movie.image || this.movie.posterUrl || 'https://via.placeholder.com/300x450?text=No+Image';
+        },
+        genres() {
+            if (!this.movie.genreList) return 'N/A';
+
+            return this.movie.genreList
+                .map(genre => genre.value || genre)
+                .filter(genre => genre)
+                .join(', ');
+        },
+        actors() {
+            if (!this.movie.actorList) return 'N/A';
+
+            return this.movie.actorList
+                .map(actor => actor.name || actor)
+                .filter(actor => actor)
+                .join(', ');
+        },
+        directors() {
+            if (!this.movie.directorList) return 'N/A';
+
+            return this.movie.directorList
+                .map(director => director.name || director)
+                .filter(director => director)
+                .join(', ');
         }
     },
     template: `
@@ -219,30 +287,29 @@ const MovieDetails = {
             <div class="movie-details-content">
                 <button class="close-btn" @click="$emit('close')">&times;</button>
                 <div class="movie-details-grid">
-                    <div class="movie-poster-container">
+                    <div class="movie-poster-container d-flex align-items-center justify-content-center py-3">
                         <img :src="imageUrl" :alt="movie.title" class="movie-detail-poster">
                     </div>
                     <div class="movie-info-container">
+
                         <h2>{{movie.fullTitle || movie.title}}</h2>
                         <div class="movie-meta">
-                            <p v-if="movie.year"><strong>Year:</strong> {{movie.year}}</p>
-                            <p v-if="movie.imDbRating"><strong>Rating:</strong> {{movie.imDbRating}}/10</p>
-                            <p v-if="movie.runtimeStr || movie.runtime">
-                                <strong>Runtime:</strong> {{movie.runtimeStr || movie.runtime}}
-                            </p>
+                            <p v-if="movie.awards"><strong>Award:</strong> {{movie.awards}}</p>
+                            <p v-if="movie.countries"><strong>Country:</strong> {{movie.countries}}</p>
+                            <p v-if="movie.languages"><strong>Language:</strong> {{movie.languages}}</p>
+                            <p v-if="movie.rank"><strong>Rank:</strong> {{movie.rank}}</p>
+                            <p v-if="movie.imDbRating"><strong>IMDB:</strong> {{movie.imDbRating}}</p>
+
+                            <p v-if="movie.directorList "> <strong>Director:</strong> {{directors }}</p>
+                            <p v-if="movie.crew "> <strong>Director:</strong> {{movie.crew }}</p>
+                            <p v-if="movie.actorList"><strong>Actors:</strong> {{actors}}</p>
+                            <p v-if="movie.genreList"><strong>Genres:</strong> {{genres}}</p>
+                            <p v-if="movie.runtimeStr"><strong>Runtime:</strong> {{movie.runtimeStr || movie.runtime}}</p>
                         </div>
+                        
                         <div v-if="movie.plot || movie.description" class="movie-plot">
                             <h3>Plot</h3>
                             <p>{{movie.plot || movie.description}}</p>
-                        </div>
-                        <div v-if="movie.directors" class="movie-crew">
-                            <p><strong>Director:</strong> {{movie.directors}}</p>
-                        </div>
-                        <div v-if="movie.stars" class="movie-cast">
-                            <p><strong>Stars:</strong> {{movie.stars}}</p>
-                        </div>
-                        <div v-if="movie.genres" class="movie-genres">
-                            <p><strong>Genres:</strong> {{movie.genres}}</p>
                         </div>
                     </div>
                 </div>
@@ -252,7 +319,7 @@ const MovieDetails = {
 };
 const SearchResults = {
     components: {
-        'featured-movie-card': FeaturedMovieCard,  
+        'featured-movie-card': FeaturedMovieCard,
     },
     props: {
         searchQuery: { type: String, required: true },
@@ -264,7 +331,7 @@ const SearchResults = {
     data() {
         return {
             currentPage: 1,
-            itemsPerPage: 9 // Changed from 3 to 9
+            itemsPerPage: 9
         }
     },
     computed: {
@@ -284,7 +351,6 @@ const SearchResults = {
             }
         },
         handleShowDetails(movie) {
-            // Forward the show-details event to parent
             this.$emit('show-details', movie);
         }
     },
@@ -380,9 +446,15 @@ createApp({
             if (!this.searchQuery.trim()) return;
             this.isLoading = true;
             this.hasSearched = true;
-            this.currentPage = 1; 
+            this.currentPage = 1;
             try {
-                this.searchResults = await MovieDBProvider.searchMovies(this.searchQuery);
+                const actorResults = await MovieDBProvider.searchByActor(this.searchQuery);
+                const titleResults = await MovieDBProvider.searchMovies(this.searchQuery);
+                const combinedResults = [...actorResults, ...titleResults];
+                this.searchResults = Array.from(new Map(combinedResults.map(movie => 
+                    [movie.id, movie]
+                )).values());
+
             } catch (error) {
                 this.error = "Error searching movies";
                 console.error(error);
@@ -394,11 +466,19 @@ createApp({
             this.currentPage = page;
         },
         handleClick() {
-            this.$emit('showDetails', this.movie);
+            this.$emit('show-details', { id: this.movie.id });
         },
-        showDetails(movie) {
-            this.selectedMovie = movie;
-            this.showMovieDetails = true;
+        async showDetails(movie) {
+            try {
+                this.isLoading = true;
+                const detailedMovie = await MovieDBProvider.getMovieDetails(movie.id);
+                this.selectedMovie = detailedMovie;
+                this.showMovieDetails = true;
+            } catch (error) {
+                console.error('Error fetching movie details:', error);
+            } finally {
+                this.isLoading = false;
+            }
         },
         closeDetails() {
             this.showMovieDetails = false;
@@ -420,15 +500,7 @@ createApp({
                 this.isLoading = false;
             }
         },
-        async loadMovieReviews(movieId) {
-            if (this.movieReviews[movieId]) return;
-            try {
-                this.movieReviews[movieId] = await MovieDBProvider.getMovieReviews(movieId);
-            } catch (error) {
-                console.error('Error loading reviews:', error);
-                this.error = "Error loading reviews";
-            }
-        },
+        
         getVisibleMovies(movies, section) {
             const index = section === 'popular' ? this.popularSlideIndex : this.topRatedSlideIndex;
             const start = this.moviesPerSlide * index;
@@ -464,9 +536,11 @@ createApp({
         prevFeaturedSlide() {
             this.featuredSlideIndex = this.featuredSlideIndex <= 0 ?
                 this.featuredMovies.length - 1 : this.featuredSlideIndex - 1;
-        }
+        },
+
     },
     async mounted() {
         await this.loadInitialData();
     }
+
 }).mount("#app");
